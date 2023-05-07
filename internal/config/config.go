@@ -10,11 +10,14 @@ import (
 
 // ServerConfig server configuration structure
 type ServerConfig struct {
-	Addr    string `env:"ADDRESS" json:"address"`
-	DB      string `env:"DB" json:"db_address"`
-	CfgFile string `env:"CFG_FILE"`
+	Addr         string `env:"ADDRESS" json:"address"`
+	DB           string `env:"DB" json:"db_address"`
+	AccessToken  string `env:"ACCESS" json:"access_token"`
+	RefreshToken string `env:"REFRESH" json:"refresh_token"`
+	CfgFile      string `env:"CFG_FILE"`
 }
 
+// NewServerConfig server config constructor
 func NewServerConfig() (*ServerConfig, error) {
 
 	var cfg ServerConfig
@@ -23,6 +26,16 @@ func NewServerConfig() (*ServerConfig, error) {
 		"a",
 		"127.0.0.1",
 		"the address where the server is running",
+	)
+	flag.StringVar(&cfg.RefreshToken,
+		"tr",
+		"your-access-secret-key",
+		"secret key for jwt access token",
+	)
+	flag.StringVar(&cfg.AccessToken,
+		"ta",
+		"your-refresh-secret-key",
+		"secret key for jwt refresh token",
 	)
 	flag.StringVar(&cfg.Addr,
 		"c",
