@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/EgorKo25/GophKeeper/pkg/auth"
+
 	"github.com/EgorKo25/GophKeeper/internal/database"
-	"github.com/EgorKo25/GophKeeper/internal/server/auth"
 	"github.com/EgorKo25/GophKeeper/internal/storage"
 )
 

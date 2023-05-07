@@ -4,9 +4,10 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/EgorKo25/GophKeeper/pkg/auth"
+
 	"github.com/EgorKo25/GophKeeper/internal/config"
 	"github.com/EgorKo25/GophKeeper/internal/database"
-	"github.com/EgorKo25/GophKeeper/internal/server/auth"
 	"github.com/EgorKo25/GophKeeper/internal/server/handlers"
 	"github.com/EgorKo25/GophKeeper/internal/server/mymiddleware"
 	"github.com/EgorKo25/GophKeeper/internal/server/myrouter"

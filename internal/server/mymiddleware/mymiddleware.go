@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/EgorKo25/GophKeeper/internal/server/auth"
 	"github.com/EgorKo25/GophKeeper/internal/storage"
+
+	"github.com/EgorKo25/GophKeeper/pkg/auth"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -59,7 +60,7 @@ func (m *MyMiddleware) CheckCookie(next http.Handler) http.Handler {
 			return
 		}
 
-		if access.Expires.Sub(time.Now()) < 5*time.Minute {
+		if time.Until(access.Expires) < 5*time.Minute {
 			if tokenRefresh.Valid && tokenRefresh != nil {
 
 				cookies, err := m.au.GenerateTokensAndCreateCookie(user)
