@@ -14,6 +14,7 @@ type ServerConfig struct {
 	DB           string `env:"DB" json:"db_address"`
 	AccessToken  string `env:"ACCESS" json:"access_token"`
 	RefreshToken string `env:"REFRESH" json:"refresh_token"`
+	PublicPath   string `env:"PUBLIC_PATH" json:"public_path"`
 	CfgFile      string `env:"CFG_FILE"`
 }
 
@@ -68,4 +69,10 @@ func NewServerConfig() (*ServerConfig, error) {
 	}
 
 	return &cfg, nil
+}
+
+// AgentConfig agent configuration structure
+type AgentConfig struct {
+	AddrServ string `env:"ADDRESS" json:"address"`
+	CfgFile  string `env:"CFG_FILE"`
 }

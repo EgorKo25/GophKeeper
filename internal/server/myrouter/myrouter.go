@@ -15,12 +15,15 @@ func NewRouter(handler *handlers.Handler, middle *mymiddleware.MyMiddleware) chi
 	r.Use(middleware.Logger)
 
 	r.Group(func(r chi.Router) {
-		r.Post("/api/user/register", handler.Register)
-		r.Post("/api/user/login", handler.Login)
-
+		r.Post("/user/register", handler.Register)
+		r.Post("/user/login", handler.Login)
 	})
 	r.Group(func(r chi.Router) {
 		r.Use(middle.CheckCookie)
+		r.Post("/user/add", handler.Add)
+		r.Post("/user/read", handler.Read)
+		r.Post("/user/update", handler.Update)
+		r.Post("/user/delete", handler.Delete)
 	})
 
 	return r

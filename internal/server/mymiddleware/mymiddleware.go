@@ -5,11 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/EgorKo25/GophKeeper/internal/storage"
-
 	"github.com/EgorKo25/GophKeeper/pkg/auth"
-
-	"github.com/dgrijalva/jwt-go"
 )
 
 // MyMiddleware middleware struct
@@ -32,18 +28,9 @@ func (m *MyMiddleware) CheckCookie(next http.Handler) http.Handler {
 			return
 		}
 
-		user := &storage.User{Login: u.Value}
-
 		access, err := r.Cookie("Accesses-token")
 		if err == http.ErrNoCookie {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
-			return
-		}
-
-		_, err = jwt.Parse(access.Value, nil)
-		if err != nil {
-			log.Printf("parse token error: %s", err)
-			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
@@ -53,7 +40,14 @@ func (m *MyMiddleware) CheckCookie(next http.Handler) http.Handler {
 			return
 		}
 
-		tokenRefresh, err := jwt.Parse(refresh.Value, nil)
+		_, err = m.au.ParseWithClaims(refresh.Value)
+		if err != nil {
+			log.Printf("parse token error: %s", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		_, err = m.au.ParseWithClaims(access.Value)
 		if err != nil {
 			log.Printf("parse token error: %s", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -61,19 +55,18 @@ func (m *MyMiddleware) CheckCookie(next http.Handler) http.Handler {
 		}
 
 		if time.Until(access.Expires) < 5*time.Minute {
-			if tokenRefresh.Valid && tokenRefresh != nil {
 
-				cookies, err := m.au.GenerateTokensAndCreateCookie(user)
-				if err != nil {
-					w.WriteHeader(http.StatusInternalServerError)
-					log.Printf("create cookie error: %s", err)
-					return
-				}
-				http.SetCookie(w, cookies[0])
-				http.SetCookie(w, cookies[1])
-				http.SetCookie(w, cookies[2])
-				next.ServeHTTP(w, r)
+			cookies, err := m.au.RefreshTokens(access.Value, refresh.Value, u.Value)
+			if err != nil {
+				log.Printf("create cookie error: %s", err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
 			}
+			http.SetCookie(w, cookies[0])
+			http.SetCookie(w, cookies[1])
+			http.SetCookie(w, cookies[2])
+			next.ServeHTTP(w, r)
+			return
 		}
 
 	})

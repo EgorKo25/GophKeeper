@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/EgorKo25/GophKeeper/pkg/mycrypto"
+
 	"github.com/EgorKo25/GophKeeper/pkg/auth"
 
 	"github.com/EgorKo25/GophKeeper/internal/config"
@@ -24,11 +26,16 @@ func main() {
 		log.Fatalf("database constructor error: %s", err)
 	}
 
-	authentication := auth.NewAuth(cfg.AccessToken, cfg.RefreshToken)
+	encrypt, err := mycrypto.NewCrypto()
+	if err != nil {
+		log.Fatalf("encrypt constructor error: %s", err)
+	}
+
+	authentication := auth.NewAuth(cfg.RefreshToken)
 
 	middle := mymiddleware.NewMyMiddleware(authentication)
 
-	handler := handlers.NewHandler(db, authentication)
+	handler := handlers.NewHandler(db, authentication, encrypt)
 
 	router := myrouter.NewRouter(handler, middle)
 
