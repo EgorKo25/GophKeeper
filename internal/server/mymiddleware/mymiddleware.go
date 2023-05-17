@@ -1,9 +1,14 @@
 package mymiddleware
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/EgorKo25/GophKeeper/internal/storage"
+
+	"github.com/EgorKo25/GophKeeper/internal/database"
 
 	"github.com/EgorKo25/GophKeeper/pkg/auth"
 )
@@ -11,11 +16,57 @@ import (
 // MyMiddleware middleware struct
 type MyMiddleware struct {
 	au *auth.Auth
+	db *database.ManagerDB
 }
 
 // NewMyMiddleware middleware struct constructor
-func NewMyMiddleware(au *auth.Auth) *MyMiddleware {
-	return &MyMiddleware{au: au}
+func NewMyMiddleware(au *auth.Auth, db *database.ManagerDB) *MyMiddleware {
+	return &MyMiddleware{
+		au: au,
+		db: db,
+	}
+}
+
+func (m *MyMiddleware) CheckUserStatus(next http.Handler) http.Handler {
+
+	var user storage.User
+	ctx := context.Background()
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		login, _ := r.Cookie("User")
+
+		user.Login = login.Value
+		user.Status = true
+
+		_, err := m.db.Read(ctx, &user, login.Value)
+		if err != nil {
+			if err == database.ErrRace {
+				w.WriteHeader(http.StatusTooManyRequests)
+				return
+			}
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = m.db.Update(ctx, user, login.Value)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+
+		user.Status = false
+
+		err = m.db.Update(ctx, user, login.Value)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	})
 }
 
 // CheckCookie middleware for a check cookie
