@@ -12,6 +12,7 @@ type User struct {
 	Email     string    `json:"email" form:"email" db:"email"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
+	Status    bool      `db:"status"`
 }
 
 type Card struct {
