@@ -20,6 +20,7 @@ func NewRouter(handler *handlers.Handler, middle *mymiddleware.MyMiddleware) chi
 	})
 	r.Group(func(r chi.Router) {
 		r.Use(middle.CheckCookie)
+		r.Use(middle.CheckUserStatus)
 		r.Post("/user/add", handler.Add)
 		r.Post("/user/read", handler.Read)
 		r.Post("/user/update", handler.Update)

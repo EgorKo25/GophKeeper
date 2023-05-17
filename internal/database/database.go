@@ -15,6 +15,10 @@ import (
 	"github.com/EgorKo25/GophKeeper/internal/storage"
 )
 
+var (
+	ErrRace = errors.New("the resource is busy")
+)
+
 // ManagerDB structure for managing database
 type ManagerDB struct {
 	Db *sqlx.DB
@@ -54,8 +58,8 @@ func createTable(ctx context.Context, db *sqlx.DB) error {
     password VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-	);`,
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    status BOOLEAN);`,
 
 		`CREATE TABLE IF NOT EXISTS
 	passwords (
@@ -124,8 +128,8 @@ func (m *ManagerDB) Add(ctx context.Context, src any, login string) error {
 	defer cancel()
 
 	switch data := src.(type) {
-	case storage.User:
-		return m.addUser(childCtx, &data)
+	case *storage.User:
+		return m.addUser(childCtx, data)
 	case storage.Password:
 		data.LoginOwner = login
 		return m.addPassword(childCtx, &data)
@@ -206,11 +210,16 @@ func (m *ManagerDB) Read(ctx context.Context, src any, login string) ([]byte, er
 	defer cancel()
 
 	switch data := src.(type) {
-	case storage.User:
-		err := m.readUser(childCtx, &data)
+	case *storage.User:
+		err := m.readUser(childCtx, data)
 		if err != nil {
 			return []byte(""), err
 		}
+
+		if data.Status {
+			return []byte(""), err
+		}
+
 		res, err := json.Marshal(&data)
 		if err != nil {
 			return []byte(""), err
@@ -395,8 +404,8 @@ func (m *ManagerDB) updateBinData(childCtx context.Context, binary *storage.Bina
 // updateUser update user
 func (m *ManagerDB) updateUser(childCtx context.Context, user *storage.User) error {
 
-	query := `UPDATE users SET login = :login, password = :password, email = :email
-                 WHERE login = :login;`
+	query := `UPDATE users SET username = :username, status = :status
+                 WHERE username = :username;`
 
 	_, err := m.Db.NamedExecContext(childCtx, query, user)
 	if err != nil {

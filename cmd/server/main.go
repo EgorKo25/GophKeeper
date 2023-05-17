@@ -33,7 +33,7 @@ func main() {
 
 	authentication := auth.NewAuth(cfg.RefreshToken)
 
-	middle := mymiddleware.NewMyMiddleware(authentication)
+	middle := mymiddleware.NewMyMiddleware(authentication, db)
 
 	handler := handlers.NewHandler(db, authentication, encrypt)
 
