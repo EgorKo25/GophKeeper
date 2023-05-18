@@ -17,6 +17,7 @@ import (
 var (
 	cantRead      = "can't read request body: %s"
 	cantUnmarshal = "can't unmarshal json obj: %s"
+	errDataFormat = "wrong data: %s"
 )
 
 // Handler handler struct
@@ -56,6 +57,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Login == "" || user.Email == "" || user.Password == "" {
+		log.Printf(errDataFormat, user)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -159,6 +161,7 @@ func (h *Handler) Add(w http.ResponseWriter, r *http.Request) {
 	cook, err := r.Cookie("User")
 	if err != nil {
 		log.Printf("%s", err)
+		return
 	}
 
 	err = h.Db.Add(ctx, data, cook.Value)
@@ -180,7 +183,7 @@ func myUnmarshal(t string, body []byte) (any, error) {
 			log.Printf(cantUnmarshal, err)
 			return nil, err
 		}
-		return res, nil
+		return &res, nil
 	case "password":
 		res := storage.Password{}
 		err := json.Unmarshal(body, &res)
@@ -230,8 +233,9 @@ func (h *Handler) Read(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = w.Write(res)
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Data-Type", resType)
+	_, _ = w.Write(res)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -268,8 +272,9 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, _ = w.Write(res)
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Data-Type", resType)
+	_, _ = w.Write(res)
 	w.WriteHeader(http.StatusOK)
 }
 

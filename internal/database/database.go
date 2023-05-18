@@ -84,7 +84,7 @@ func createTable(ctx context.Context, db *sqlx.DB) error {
 	login_owner VARCHAR(255) NOT NULL,
 	number VARCHAR(50) NOT NULL,
 	date_end VARCHAR(50) NOT NULL,
-	secret_code VARCHAR(3) NOT NULL,
+	secret_code VARCHAR(50) NOT NULL,
 	owner VARCHAR(50) NOT NULL);`,
 
 		`CREATE TABLE IF NOT EXISTS
@@ -144,9 +144,9 @@ func (m *ManagerDB) Add(ctx context.Context, src any, login string) error {
 	case storage.BinaryData:
 		data.LoginOwner = login
 		return m.addBinData(childCtx, &data)
-	case storage.Card:
+	case *storage.Card:
 		data.LoginOwner = login
-		return m.addCard(childCtx, &data)
+		return m.addCard(childCtx, data)
 	default:
 
 	}
@@ -174,8 +174,8 @@ func (m *ManagerDB) addPassword(ctx context.Context, password *storage.Password)
 // addCard adds new card
 func (m *ManagerDB) addCard(childCtx context.Context, card *storage.Card) error {
 
-	query := `INSERT INTO cards (bank, login, number, dataEnd, secret_code, owner)
-							VALUES  (:bank, :login_owner, :number, :data_end, :secret_code, :owner);`
+	query := `INSERT INTO cards (bank, login_owner, number, date_end, secret_code, owner)
+							VALUES  (:bank, :login_owner, :number, :date_end, :secret_code, :owner);`
 
 	_, err := m.Db.NamedExecContext(childCtx, query, card)
 	if err != nil {
@@ -255,9 +255,9 @@ func (m *ManagerDB) Read(ctx context.Context, src any, login string) ([]byte, er
 			return []byte(""), err
 		}
 		return res, nil
-	case storage.Card:
+	case *storage.Card:
 		data.LoginOwner = login
-		err := m.readCard(childCtx, &data)
+		err := m.readCard(childCtx, data)
 		if err != nil {
 			return []byte(""), err
 		}
@@ -301,6 +301,7 @@ func (m *ManagerDB) readCard(childCtx context.Context, card *storage.Card) error
 		return err
 	}
 
+	rows.Next()
 	err = rows.StructScan(card)
 	if err != nil {
 		return err
@@ -319,6 +320,7 @@ func (m *ManagerDB) readBinary(childCtx context.Context, binary *storage.BinaryD
 		return err
 	}
 
+	rows.Next()
 	err = rows.StructScan(binary)
 	if err != nil {
 		return err
