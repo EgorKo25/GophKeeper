@@ -19,9 +19,9 @@ type Card struct {
 	Id         int    `db:"id" json:"id"`
 	Bank       string `db:"bank" json:"bank"`
 	LoginOwner string `db:"login_owner" json:"login_owner"`
-	Number     int    `db:"number" json:"number"`
-	DataEnd    int    `db:"data_end" json:"data_end"`
-	SecretCode int    `db:"secret_code" json:"secret_code"`
+	Number     string `db:"number" json:"number"`
+	DataEnd    string `db:"data_end" json:"data_end"`
+	SecretCode string `db:"secret_code" json:"secret_code"`
 	Owner      string `db:"owner" json:"owner"`
 }
 

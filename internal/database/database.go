@@ -15,6 +15,14 @@ import (
 	"github.com/EgorKo25/GophKeeper/internal/storage"
 )
 
+type Database interface {
+	Add(ctx context.Context, src any, login string) error
+	Update(ctx context.Context, src any, login string) error
+	Delete(ctx context.Context, src any, login string) error
+	Read(ctx context.Context, src any, login string) ([]byte, error)
+	CheckUser(ctx context.Context, user *storage.User) (bool, error)
+}
+
 var (
 	ErrRace = errors.New("the resource is busy")
 )
@@ -74,9 +82,9 @@ func createTable(ctx context.Context, db *sqlx.DB) error {
 	id SERIAL PRIMARY KEY, 
     bank VARCHAR(255),
 	login_owner VARCHAR(255) NOT NULL,
-	number INT NOT NULL,
-	date_end INT NOT NULL,
-	secret_code INT NOT NULL,
+	number VARCHAR(50) NOT NULL,
+	date_end VARCHAR(50) NOT NULL,
+	secret_code VARCHAR(3) NOT NULL,
 	owner VARCHAR(50) NOT NULL);`,
 
 		`CREATE TABLE IF NOT EXISTS
