@@ -59,6 +59,34 @@ func TestHandler_Register(t *testing.T) {
 			},
 			expectedStatus: http.StatusOK,
 		},
+		{
+			name:    "missing login",
+			prepare: func(f *fields) {},
+			request: "/user/add",
+			user: storage.User{
+				Password: "testpassword",
+				Email:    "testemail@test.com",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "missing password",
+			prepare: func(f *fields) {},
+			request: "/user/add",
+			user: storage.User{
+				Email: "testemail@test.com",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "missing email",
+			prepare: func(f *fields) {},
+			request: "/user/add",
+			user: storage.User{
+				Password: "testpassword",
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
