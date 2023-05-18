@@ -7,9 +7,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"time"
-
-	"github.com/EgorKo25/GophKeeper/pkg/mycrypto"
 
 	"github.com/EgorKo25/GophKeeper/pkg/auth"
 
@@ -24,17 +21,15 @@ var (
 
 // Handler handler struct
 type Handler struct {
-	db *database.ManagerDB
-	au *auth.Auth
-	cr *mycrypto.Crypto
+	Db database.Database
+	Au *auth.Auth
 }
 
 // NewHandler Handler constructor
-func NewHandler(db *database.ManagerDB, au *auth.Auth, cr *mycrypto.Crypto) *Handler {
+func NewHandler(db *database.ManagerDB, au *auth.Auth) *Handler {
 	return &Handler{
-		db: db,
-		au: au,
-		cr: cr,
+		Db: db,
+		Au: au,
 	}
 }
 
@@ -65,25 +60,21 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.db.Read(ctx, &user, user.Login)
+	_, err = h.Db.Read(ctx, &user, user.Login)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("error: %s", err)
 		return
 	}
 
-	exp := time.Now()
-
-	user.CreatedAt, user.UpdatedAt = exp, exp
-
-	err = h.db.Add(ctx, &user, user.Login)
+	err = h.Db.Add(ctx, &user, user.Login)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("add user error: %s", err)
 		return
 	}
 
-	cookies, err = h.au.GenerateTokensAndCreateCookie(&user)
+	cookies, err = h.Au.GenerateTokensAndCreateCookie(&user)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("create cookie error: %s", err)
@@ -118,7 +109,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isUserExist, err := h.db.CheckUser(ctx, &user)
+	isUserExist, err := h.Db.CheckUser(ctx, &user)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("%s", err)
@@ -130,7 +121,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cookies, err = h.au.GenerateTokensAndCreateCookie(&user)
+	cookies, err = h.Au.GenerateTokensAndCreateCookie(&user)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		log.Printf("create cookie error: %s", err)
@@ -170,7 +161,7 @@ func (h *Handler) Add(w http.ResponseWriter, r *http.Request) {
 		log.Printf("%s", err)
 	}
 
-	err = h.db.Add(ctx, data, cook.Value)
+	err = h.Db.Add(ctx, data, cook.Value)
 	if err != nil {
 		log.Printf("%s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -232,7 +223,7 @@ func (h *Handler) Read(w http.ResponseWriter, r *http.Request) {
 
 	cook, _ := r.Cookie("User")
 
-	res, err := h.db.Read(ctx, data, cook.Value)
+	res, err := h.Db.Read(ctx, data, cook.Value)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -265,7 +256,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	cook, _ := r.Cookie("User")
 
-	err = h.db.Update(ctx, data, cook.Value)
+	err = h.Db.Update(ctx, data, cook.Value)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -303,7 +294,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	cook, _ := r.Cookie("User")
 
-	err = h.db.Delete(ctx, data, cook.Value)
+	err = h.Db.Delete(ctx, data, cook.Value)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
