@@ -20,13 +20,13 @@ type Card struct {
 	Bank       string `db:"bank" json:"bank"`
 	LoginOwner string `db:"login_owner" json:"login_owner"`
 	Number     string `db:"number" json:"number"`
-	DataEnd    string `db:"date_end" json:"data_end"`
+	DataEnd    string `db:"date_end" json:"date_end"`
 	SecretCode string `db:"secret_code" json:"secret_code"`
 	Owner      string `db:"owner" json:"owner"`
 }
 
 type Password struct {
-	Id         int    `db:"id" json:"id"`
+	Id         int    `db:"id" json:"id,omitempty"`
 	Service    string `db:"service" json:"service"`
 	LoginOwner string `db:"login_owner" json:"login_owner"`
 	Login      string `db:"login" json:"login"`
