@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -138,20 +139,19 @@ func (m *ManagerDB) Add(ctx context.Context, src any, login string) error {
 	switch data := src.(type) {
 	case *storage.User:
 		return m.addUser(childCtx, data)
-	case storage.Password:
+	case *storage.Password:
 		data.LoginOwner = login
-		return m.addPassword(childCtx, &data)
-	case storage.BinaryData:
+		return m.addPassword(childCtx, data)
+	case *storage.BinaryData:
 		data.LoginOwner = login
-		return m.addBinData(childCtx, &data)
+		return m.addBinData(childCtx, data)
 	case *storage.Card:
 		data.LoginOwner = login
 		return m.addCard(childCtx, data)
 	default:
-
+		return errors.New("unknown adding type " + fmt.Sprintf("%T", data))
 	}
 
-	return errors.New("unknown adding type")
 }
 
 // addPassword adds new password
@@ -188,7 +188,7 @@ func (m *ManagerDB) addCard(childCtx context.Context, card *storage.Card) error 
 // addBinData adds new binary data
 func (m *ManagerDB) addBinData(childCtx context.Context, data *storage.BinaryData) error {
 
-	query := `INSERT INTO binary_data (title, login_owner, password)
+	query := `INSERT INTO binary_data (title, login_owner, data)
 							VALUES  (:title, :login_owner, :data);`
 
 	_, err := m.Db.NamedExecContext(childCtx, query, data)
@@ -232,21 +232,25 @@ func (m *ManagerDB) Read(ctx context.Context, src any, login string) ([]byte, er
 		if err != nil {
 			return []byte(""), err
 		}
+
 		return res, nil
-	case storage.Password:
+	case *storage.Password:
 		data.LoginOwner = login
-		err := m.readPassword(childCtx, &data)
+
+		err := m.readPassword(childCtx, data)
 		if err != nil {
 			return []byte(""), err
 		}
+
 		res, err := json.Marshal(&data)
 		if err != nil {
 			return []byte(""), err
 		}
+
 		return res, nil
-	case storage.BinaryData:
+	case *storage.BinaryData:
 		data.LoginOwner = login
-		err := m.readBinary(childCtx, &data)
+		err := m.readBinary(childCtx, data)
 		if err != nil {
 			return []byte(""), err
 		}
@@ -261,10 +265,12 @@ func (m *ManagerDB) Read(ctx context.Context, src any, login string) ([]byte, er
 		if err != nil {
 			return []byte(""), err
 		}
-		res, err := json.Marshal(&data)
+
+		res, err := json.Marshal(data)
 		if err != nil {
 			return []byte(""), err
 		}
+
 		return res, nil
 	}
 
@@ -315,6 +321,7 @@ func (m *ManagerDB) readBinary(childCtx context.Context, binary *storage.BinaryD
 
 	query := `SELECT * FROM binary_data WHERE title = :title AND login_owner = :login_owner;`
 
+	log.Println(binary)
 	rows, err := m.Db.NamedQueryContext(childCtx, query, binary)
 	if err != nil {
 		return err
@@ -352,21 +359,21 @@ func (m *ManagerDB) Update(ctx context.Context, src any, login string) error {
 	defer cancel()
 
 	switch data := src.(type) {
-	case storage.User:
-		return m.updateUser(childCtx, &data)
-	case storage.Password:
+	case *storage.User:
+		return m.updateUser(childCtx, data)
+	case *storage.Password:
 		data.LoginOwner = login
-		return m.updatePassword(childCtx, &data)
-	case storage.BinaryData:
+		return m.updatePassword(childCtx, data)
+	case *storage.BinaryData:
 		data.LoginOwner = login
-		return m.updateBinData(childCtx, &data)
-	case storage.Card:
+		return m.updateBinData(childCtx, data)
+	case *storage.Card:
 		data.LoginOwner = login
-		return m.updateCard(childCtx, &data)
+		return m.updateCard(childCtx, data)
 	default:
+		return errors.New("unknown updating type " + fmt.Sprintf("%T", data))
 	}
 
-	return errors.New("unknown updating type")
 }
 
 // updatePassword update user password
@@ -386,7 +393,7 @@ func (m *ManagerDB) updatePassword(childCtx context.Context, password *storage.P
 // updateCard update user card
 func (m *ManagerDB) updateCard(childCtx context.Context, card *storage.Card) error {
 
-	query := `UPDATE cards SET bank = :bank, number = :number, data_end = :data_end,
+	query := `UPDATE cards SET bank = :bank, number = :number, date_end = :date_end,
                  secret_code = :secret_code, owner = :owner
                  WHERE login_owner = :login_owner AND bank = :bank;`
 
@@ -431,17 +438,17 @@ func (m *ManagerDB) Delete(ctx context.Context, src any, login string) error {
 	defer cancel()
 
 	switch data := src.(type) {
-	case storage.User:
-		return m.deleteUser(childCtx, &data)
-	case storage.Password:
+	case *storage.User:
+		return m.deleteUser(childCtx, data)
+	case *storage.Password:
 		data.LoginOwner = login
-		return m.deletePassword(childCtx, &data)
-	case storage.BinaryData:
+		return m.deletePassword(childCtx, data)
+	case *storage.BinaryData:
 		data.LoginOwner = login
-		return m.deleteBinData(childCtx, &data)
-	case storage.Card:
+		return m.deleteBinData(childCtx, data)
+	case *storage.Card:
 		data.LoginOwner = login
-		return m.deleteCard(childCtx, &data)
+		return m.deleteCard(childCtx, data)
 	default:
 	}
 
