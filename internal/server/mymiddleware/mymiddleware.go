@@ -49,7 +49,7 @@ func (m *MyMiddleware) CheckUserStatus(next http.Handler) http.Handler {
 			return
 		}
 
-		err = m.db.Update(ctx, user, login.Value)
+		err = m.db.Update(ctx, &user, login.Value)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
