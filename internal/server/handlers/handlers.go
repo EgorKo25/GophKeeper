@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -191,18 +192,20 @@ func myUnmarshal(t string, body []byte) (any, error) {
 			log.Printf(cantUnmarshal, err)
 			return nil, err
 		}
-		return res, nil
+		return &res, nil
 	case "bin":
 		res := storage.BinaryData{}
 		err := json.Unmarshal(body, &res)
+		log.Println(res)
 		if err != nil {
 			log.Printf(cantUnmarshal, err)
 			return nil, err
 		}
-		return res, nil
+		return &res, nil
+	default:
+		return nil, errors.New("unknown type " + fmt.Sprintf("%T", t))
 	}
 
-	return nil, errors.New("unknown type")
 }
 
 // Read user data to database
@@ -229,7 +232,7 @@ func (h *Handler) Read(w http.ResponseWriter, r *http.Request) {
 	res, err := h.Db.Read(ctx, data, cook.Value)
 	if err != nil {
 		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
@@ -254,6 +257,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	resType := r.Header.Get("Data-Type")
 	data, err := myUnmarshal(resType, body)
 	if err != nil {
+		log.Printf("error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -262,12 +266,14 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 
 	err = h.Db.Update(ctx, data, cook.Value)
 	if err != nil {
+		log.Printf("error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	res, err := json.Marshal(&data)
 	if err != nil {
+		log.Printf("error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
