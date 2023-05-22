@@ -125,3 +125,117 @@ func TestHandler_Register(t *testing.T) {
 		})
 	}
 }
+
+func TestHandler_Login(t *testing.T) {
+	type fields struct {
+		db *mock_database.MockDatabase
+	}
+
+	tests := []struct {
+		name           string
+		fields         fields
+		prepare        func(f *fields)
+		expectedStatus int
+		au             *auth.Auth
+		request        string
+		user           storage.User
+	}{
+		{
+			name: "success",
+			prepare: func(f *fields) {
+
+				ctx := context.Background()
+				user := storage.User{
+					Login:    "testuser",
+					Password: "testpassword",
+				}
+
+				gomock.InOrder(
+					f.db.EXPECT().CheckUser(ctx, &user).Return(true, nil),
+				)
+
+			},
+			request: "/user/login",
+			user: storage.User{
+				Login:    "testuser",
+				Password: "testpassword",
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "missing login",
+			prepare: func(f *fields) {
+
+				ctx := context.Background()
+				user := storage.User{
+					Password: "testpassword",
+				}
+
+				gomock.InOrder(
+					f.db.EXPECT().CheckUser(ctx, &user).Return(false, nil),
+				)
+
+			},
+			request: "/user/login",
+			user: storage.User{
+				Password: "testpassword",
+			},
+
+			expectedStatus: http.StatusForbidden,
+		},
+		{
+			name: "missing password",
+			prepare: func(f *fields) {
+				ctx := context.Background()
+				user := storage.User{
+					Login: "testuser",
+				}
+
+				gomock.InOrder(
+					f.db.EXPECT().CheckUser(ctx, &user).Return(false, nil),
+				)
+			},
+			request: "/user/login",
+			user: storage.User{
+				Login: "testuser",
+			},
+			expectedStatus: http.StatusForbidden,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			au := auth.NewAuth("some-secret")
+
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			body, err := json.Marshal(tt.user)
+			if err != nil {
+				t.Errorf("err unmarshal: %s", err)
+			}
+
+			request := httptest.NewRequest(http.MethodPost, tt.request, bytes.NewBuffer(body))
+
+			f := &fields{
+				db: mock_database.NewMockDatabase(ctrl),
+			}
+
+			if tt.prepare != nil {
+				tt.prepare(f)
+			}
+
+			w := httptest.NewRecorder()
+
+			h := handlers.Handler{Db: f.db, Au: au}
+
+			handle := http.HandlerFunc(h.Login)
+
+			handle(w, request)
+
+			result := w.Result()
+
+			assert.Equal(t, tt.expectedStatus, result.StatusCode)
+		})
+	}
+}
