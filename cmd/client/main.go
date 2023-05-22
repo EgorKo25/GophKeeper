@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"time"
 
 	"github.com/EgorKo25/GophKeeper/internal/client"
 	"github.com/EgorKo25/GophKeeper/internal/config"
@@ -9,7 +10,16 @@ import (
 	"github.com/EgorKo25/GophKeeper/pkg/mycrypto"
 )
 
+var (
+	buildVersion = "1.0.0"
+	buildDate    = time.Now()
+	buildCommit  = "Beta"
+)
+
 func main() {
+
+	log.Printf("Версия приложения: %s\nДата сборки: %s\nТип версии: %s ", buildVersion, buildDate, buildCommit)
+
 	cfg, err := config.NewAgentConfig()
 	if err != nil {
 		log.Fatal(err)
@@ -23,6 +33,8 @@ func main() {
 	c := client.NewClient(cfg.AddrServ)
 
 	dial := dialog.NewDialogManager(c, enc)
+
+	dial.SayHello()
 
 	log.Println(dial.Run())
 
