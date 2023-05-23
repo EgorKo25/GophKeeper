@@ -18,7 +18,6 @@ import (
 var (
 	cantRead      = "can't read request body: %s"
 	cantUnmarshal = "can't unmarshal json obj: %s"
-	errDataFormat = "wrong data: %s"
 )
 
 // Handler handler struct
@@ -58,7 +57,6 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if user.Login == "" || user.Email == "" || user.Password == "" {
-		log.Printf(errDataFormat, user)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -151,17 +149,22 @@ func (h *Handler) Add(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resType := r.Header.Get("Data-Type")
-	data, err := myUnmarshal(resType, body)
-	if err != nil {
-		log.Printf("%s: %s", err, resType)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	cook, err := r.Cookie("User")
 	if err != nil {
 		log.Printf("%s", err)
+		return
+	}
+
+	resType := r.Header.Get("Data-Type")
+	if resType == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	data, err := anyTypeUnmarshal(resType, body)
+	if err != nil {
+		log.Printf("%s: %s", err, resType)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
@@ -175,7 +178,8 @@ func (h *Handler) Add(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func myUnmarshal(t string, body []byte) (any, error) {
+// anyTypeUnmarshal is a Unmarshaler for my custom type
+func anyTypeUnmarshal(t string, body []byte) (any, error) {
 	switch t {
 	case "card":
 		res := storage.Card{}
@@ -221,7 +225,7 @@ func (h *Handler) Read(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resType := r.Header.Get("Data-Type")
-	data, err := myUnmarshal(resType, body)
+	data, err := anyTypeUnmarshal(resType, body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -255,7 +259,12 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resType := r.Header.Get("Data-Type")
-	data, err := myUnmarshal(resType, body)
+	if resType == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	data, err := anyTypeUnmarshal(resType, body)
 	if err != nil {
 		log.Printf("error: %s", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -297,7 +306,12 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resType := r.Header.Get("Data-Type")
-	data, err := myUnmarshal(resType, body)
+	if resType == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	data, err := anyTypeUnmarshal(resType, body)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
