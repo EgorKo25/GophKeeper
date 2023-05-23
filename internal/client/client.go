@@ -10,10 +10,12 @@ import (
 	"github.com/EgorKo25/GophKeeper/internal/storage"
 )
 
+// Client is a struct for manage client
 type Client struct {
 	urlServer string
 }
 
+// NewClient is a constructor
 func NewClient(urlServer string) *Client {
 
 	return &Client{
@@ -21,6 +23,7 @@ func NewClient(urlServer string) *Client {
 	}
 }
 
+// Send is a function for sending any data to server
 func (c *Client) Send(src any, dataType string, cookie []*http.Cookie, path string) (int, any, []*http.Cookie, error) {
 
 	var data []byte
@@ -28,7 +31,7 @@ func (c *Client) Send(src any, dataType string, cookie []*http.Cookie, path stri
 
 	client := &http.Client{}
 
-	data, err = c.myMarshal(src)
+	data, err = c.anyTypeMarshal(src)
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -51,7 +54,7 @@ func (c *Client) Send(src any, dataType string, cookie []*http.Cookie, path stri
 
 	body, _ := io.ReadAll(resp.Body)
 
-	res, err := c.myUnmarshal(resp.Header.Get("Data-Type"), body)
+	res, err := c.anyTypeUnmarshal(resp.Header.Get("Data-Type"), body)
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -59,7 +62,8 @@ func (c *Client) Send(src any, dataType string, cookie []*http.Cookie, path stri
 	return resp.StatusCode, res, resp.Cookies(), nil
 }
 
-func (c *Client) myMarshal(body any) ([]byte, error) {
+// anyTypeMarshal is a Marshaller for my custom type
+func (c *Client) anyTypeMarshal(body any) ([]byte, error) {
 	switch t := body.(type) {
 	case *storage.Card:
 		res, err := json.Marshal(t)
@@ -90,7 +94,8 @@ func (c *Client) myMarshal(body any) ([]byte, error) {
 	return nil, errors.New("unknown type")
 }
 
-func (c *Client) myUnmarshal(t string, body []byte) (any, error) {
+// anyTypeUnmarshal is an Unmarshaler for my custom type
+func (c *Client) anyTypeUnmarshal(t string, body []byte) (any, error) {
 
 	if len(body) == 0 {
 		return nil, nil
