@@ -1,3 +1,12 @@
+// package main is а package that contains server logic
+//
+// Build command:
+//
+//	go build main.go
+//
+// Run command:
+//
+//	go run main.go
 package main
 
 import (
