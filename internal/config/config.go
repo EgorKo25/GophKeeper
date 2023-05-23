@@ -73,6 +73,7 @@ type AgentConfig struct {
 	Secret   string `env:"SECRET" json:"secret"`
 }
 
+// NewAgentConfig is a constructor client configuration
 func NewAgentConfig() (*AgentConfig, error) {
 
 	ac := AgentConfig{}
