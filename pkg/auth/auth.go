@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -11,20 +12,81 @@ import (
 
 // Auth is a struct for authentication and session control
 type Auth struct {
-	secretAccessTokenKey  string
-	secretRefreshTokenKey string
+	secret string
 }
 
 // NewAuth is a contractor
-func NewAuth(secretAccessTokenKey string, secretRefreshTokenKey string) *Auth {
-	return &Auth{secretAccessTokenKey: secretAccessTokenKey,
-		secretRefreshTokenKey: secretRefreshTokenKey,
+func NewAuth(secret string) *Auth {
+	return &Auth{
+		secret: secret,
 	}
 }
+
+var (
+	ErrTokenInvalid    = errors.New("token invalid")
+	ErrClaimsNotOfType = errors.New("token claims are not of type *tokenClaims")
+	ErrSigningMethod   = errors.New("invalid singing method")
+)
 
 type claims struct {
 	Name string `json:"name"`
 	jwt.StandardClaims
+}
+
+func (a *Auth) RefreshTokens(access, refresh, login string) ([]*http.Cookie, error) {
+	accessParsed, err := jwt.ParseWithClaims(access, &claims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, ErrSigningMethod
+		}
+
+		return []byte(a.secret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	refreshParsed, err := jwt.ParseWithClaims(refresh, &claims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, ErrSigningMethod
+		}
+
+		return []byte(a.secret), nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if accessParsed.Valid && refreshParsed.Valid {
+		return a.GenerateTokensAndCreateCookie(&storage.User{Login: login})
+	}
+
+	return nil, ErrTokenInvalid
+
+}
+
+func (a *Auth) ParseWithClaims(token string) (string, error) {
+	tokenParsed, err := jwt.ParseWithClaims(token, &claims{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, ErrSigningMethod
+		}
+
+		return []byte(a.secret), nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	claimsParsed, ok := tokenParsed.Claims.(*claims)
+	if !ok {
+		return "", ErrClaimsNotOfType
+	}
+
+	if !tokenParsed.Valid {
+		return "", ErrTokenInvalid
+	}
+
+	return claimsParsed.Name, nil
+
 }
 
 func (a *Auth) GenerateTokensAndCreateCookie(user *storage.User) ([]*http.Cookie, error) {
@@ -81,7 +143,7 @@ func (a *Auth) getUserCookie(user *storage.User, exp time.Time) *http.Cookie {
 }
 
 // generateToken generate user's jwt token
-func (a *Auth) generateToken(user *storage.User, exp time.Time, secret []byte) (string, error) {
+func (a *Auth) generateToken(user *storage.User, exp time.Time) (string, error) {
 	cl := &claims{
 		Name: user.Login,
 		StandardClaims: jwt.StandardClaims{
@@ -91,7 +153,7 @@ func (a *Auth) generateToken(user *storage.User, exp time.Time, secret []byte) (
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, cl)
 
-	tokenString, err := token.SignedString(secret)
+	tokenString, err := token.SignedString([]byte(a.secret))
 	if err != nil {
 		return "", err
 	}
@@ -103,7 +165,7 @@ func (a *Auth) generateToken(user *storage.User, exp time.Time, secret []byte) (
 func (a *Auth) generateAccessToken(user *storage.User) (string, error) {
 	exp := time.Now().Add(1 * time.Hour)
 
-	return a.generateToken(user, exp, []byte(a.secretAccessTokenKey))
+	return a.generateToken(user, exp)
 }
 
 // generateRefreshToken generate user's jwt token
@@ -111,5 +173,5 @@ func (a *Auth) generateRefreshToken(user *storage.User) (string, error) {
 
 	exp := time.Now().Add(24 * time.Hour)
 
-	return a.generateToken(user, exp, []byte(a.secretRefreshTokenKey))
+	return a.generateToken(user, exp)
 }

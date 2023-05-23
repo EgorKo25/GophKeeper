@@ -1,8 +1,18 @@
+// package main is а package that contains server logic
+//
+// Build command:
+//
+//	go build main.go
+//
+// Run command:
+//
+//	go run main.go
 package main
 
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/EgorKo25/GophKeeper/pkg/auth"
 
@@ -13,7 +23,16 @@ import (
 	"github.com/EgorKo25/GophKeeper/internal/server/myrouter"
 )
 
+var (
+	buildVersion = "1.0.0"
+	buildDate    = time.Now()
+	buildCommit  = "Beta"
+)
+
 func main() {
+
+	log.Printf("Версия приложения: %s\nДата сборки: %s\nТип версии: %s ", buildVersion, buildDate, buildCommit)
+
 	cfg, err := config.NewServerConfig()
 	if err != nil {
 		log.Fatalf("config create error: %s", err)
@@ -24,9 +43,9 @@ func main() {
 		log.Fatalf("database constructor error: %s", err)
 	}
 
-	authentication := auth.NewAuth(cfg.AccessToken, cfg.RefreshToken)
+	authentication := auth.NewAuth(cfg.RefreshToken)
 
-	middle := mymiddleware.NewMyMiddleware(authentication)
+	middle := mymiddleware.NewMyMiddleware(authentication, db)
 
 	handler := handlers.NewHandler(db, authentication)
 

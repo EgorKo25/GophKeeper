@@ -14,6 +14,7 @@ type ServerConfig struct {
 	DB           string `env:"DB" json:"db_address"`
 	AccessToken  string `env:"ACCESS" json:"access_token"`
 	RefreshToken string `env:"REFRESH" json:"refresh_token"`
+	PublicPath   string `env:"PUBLIC_PATH" json:"public_path"`
 	CfgFile      string `env:"CFG_FILE"`
 }
 
@@ -24,7 +25,7 @@ func NewServerConfig() (*ServerConfig, error) {
 
 	flag.StringVar(&cfg.Addr,
 		"a",
-		"127.0.0.1",
+		"127.0.0.1:8080",
 		"the address where the server is running",
 	)
 	flag.StringVar(&cfg.RefreshToken,
@@ -37,14 +38,9 @@ func NewServerConfig() (*ServerConfig, error) {
 		"your-refresh-secret-key",
 		"secret key for jwt refresh token",
 	)
-	flag.StringVar(&cfg.Addr,
-		"c",
-		"",
-		"configuration file",
-	)
 	flag.StringVar(&cfg.DB,
 		"d",
-		"",
+		"postgresql://postgres:jxrfhbr25@localhost:5432/gophkeeper",
 		"the database where the server is running",
 	)
 
@@ -68,4 +64,53 @@ func NewServerConfig() (*ServerConfig, error) {
 	}
 
 	return &cfg, nil
+}
+
+// AgentConfig agent configuration structure
+type AgentConfig struct {
+	AddrServ string `env:"ADDRESS" json:"address"`
+	CfgFile  string `env:"CFG_FILE"`
+	Secret   string `env:"SECRET" json:"secret"`
+}
+
+// NewAgentConfig is a constructor client configuration
+func NewAgentConfig() (*AgentConfig, error) {
+
+	ac := AgentConfig{}
+	flag.StringVar(&ac.Secret,
+		"secret",
+		"some-sec",
+		"secret key",
+	)
+	flag.StringVar(&ac.AddrServ,
+		"address",
+		"http://127.0.0.1:8080",
+		"address server",
+	)
+	flag.StringVar(&ac.CfgFile,
+		"config",
+		"",
+		"configuration file",
+	)
+
+	flag.Parse()
+
+	err := env.Parse(&ac)
+	if err != nil {
+		return nil, err
+	}
+
+	if ac.CfgFile != "" {
+		f, err := os.ReadFile(ac.CfgFile)
+		if err != nil {
+			return nil, err
+		}
+
+		err = json.Unmarshal(f, &ac)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &ac, nil
 }
