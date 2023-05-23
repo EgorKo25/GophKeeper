@@ -1,3 +1,4 @@
+// Package dialog is a package for managing command line interface
 package dialog
 
 import (
@@ -10,17 +11,18 @@ import (
 	"github.com/EgorKo25/GophKeeper/pkg/mycrypto"
 
 	"github.com/EgorKo25/GophKeeper/internal/client"
-
 	"github.com/EgorKo25/GophKeeper/internal/storage"
 
 	"github.com/manifoldco/promptui"
 )
 
 var (
+	// Command line font Style
 	myStyler = promptui.Styler(promptui.FGBold, promptui.FGGreen)
 )
 
-type DialogManager struct {
+// Manager is a struct for managing cli
+type Manager struct {
 	functions map[string]func(string) error
 	cookie    []*http.Cookie
 	user      *storage.User
@@ -29,9 +31,10 @@ type DialogManager struct {
 	c *client.Client
 }
 
-func NewDialogManager(c *client.Client, e *mycrypto.Crypto) *DialogManager {
+// NewManager is a constructor Manager
+func NewManager(c *client.Client, e *mycrypto.Crypto) *Manager {
 
-	var dial DialogManager
+	var dial Manager
 
 	dial.e = e
 	dial.c = c
@@ -49,7 +52,27 @@ func NewDialogManager(c *client.Client, e *mycrypto.Crypto) *DialogManager {
 	return &dial
 }
 
-func (d *DialogManager) SayHello() {
+// Run is a function for running cli
+func (d *Manager) Run() error {
+
+	d.sayHello()
+
+	err := d.SelectAuth()
+	if err != nil {
+		return err
+	}
+
+	for {
+		err = d.SelectFunc()
+		if err != nil {
+			return err
+		}
+	}
+
+}
+
+// sayHello is function for printing logotype
+func (d *Manager) sayHello() {
 	fmt.Println(`
 ╭╮╭╮╭╮╱╱╭╮╱╱╱╱╱╱╱╱╱╱╱╱╱╱╭╮╱╱╱╱╭━━━╮╱╱╱╱╱╭╮╱╭╮╭━╮
 ┃┃┃┃┃┃╱╱┃┃╱╱╱╱╱╱╱╱╱╱╱╱╱╭╯╰╮╱╱╱┃╭━╮┃╱╱╱╱╱┃┃╱┃┃┃╭╯
@@ -62,7 +85,8 @@ func (d *DialogManager) SayHello() {
 
 }
 
-func (d *DialogManager) SelectAuth() error {
+// SelectAuth is a function for user can select authorization method
+func (d *Manager) SelectAuth() error {
 	prompt := promptui.Select{
 		Label: "Have an account?",
 		Items: []string{"Registration", "Login", "Exit"},
@@ -90,7 +114,8 @@ func (d *DialogManager) SelectAuth() error {
 
 }
 
-func (d *DialogManager) SelectFunc() error {
+// SelectFunc is a function for user can select one of function app
+func (d *Manager) SelectFunc() error {
 
 	prompt := promptui.Select{
 		Label: "Выберте функцию",
@@ -119,7 +144,8 @@ func (d *DialogManager) SelectFunc() error {
 
 }
 
-func (d *DialogManager) myPrompt(label string) string {
+// myPrompt is a function for printing control
+func (d *Manager) myPrompt(label string) string {
 	prompt := promptui.Prompt{
 		Label: myStyler(myStyler(label)),
 	}
@@ -128,7 +154,8 @@ func (d *DialogManager) myPrompt(label string) string {
 	return res
 }
 
-func (d *DialogManager) Add(dataType string) error {
+// Add is a facade for adding new data into server
+func (d *Manager) Add(dataType string) error {
 	switch dataType {
 	case "password":
 		return d.addPassword(d.user.Login)
@@ -143,7 +170,7 @@ func (d *DialogManager) Add(dataType string) error {
 	}
 }
 
-func (d *DialogManager) addUser() (err error) {
+func (d *Manager) addUser() (err error) {
 
 	var pass storage.User
 	var code int
@@ -189,7 +216,7 @@ func (d *DialogManager) addUser() (err error) {
 	return nil
 }
 
-func (d *DialogManager) addPassword(login string) (err error) {
+func (d *Manager) addPassword(login string) (err error) {
 
 	var pass storage.Password
 	var code int
@@ -228,7 +255,7 @@ func (d *DialogManager) addPassword(login string) (err error) {
 	return nil
 }
 
-func (d *DialogManager) addCard(login string) (err error) {
+func (d *Manager) addCard(login string) (err error) {
 
 	var pass storage.Card
 	var code int
@@ -281,7 +308,7 @@ func (d *DialogManager) addCard(login string) (err error) {
 	return nil
 }
 
-func (d *DialogManager) addBinData(login string) (err error) {
+func (d *Manager) addBinData(login string) (err error) {
 
 	var pass storage.BinaryData
 	var code int
@@ -315,23 +342,8 @@ func (d *DialogManager) addBinData(login string) (err error) {
 	return nil
 }
 
-func (d *DialogManager) Run() error {
-
-	err := d.SelectAuth()
-	if err != nil {
-		return err
-	}
-
-	for {
-		err = d.SelectFunc()
-		if err != nil {
-			return err
-		}
-	}
-
-}
-
-func (d *DialogManager) Read(dataType string) error {
+// Read is a facade for reading data from server
+func (d *Manager) Read(dataType string) error {
 	switch dataType {
 	case "password":
 		return d.readPassword()
@@ -347,7 +359,7 @@ func (d *DialogManager) Read(dataType string) error {
 	}
 }
 
-func (d *DialogManager) readUser() (err error) {
+func (d *Manager) readUser() (err error) {
 
 	var pass storage.User
 	var code int
@@ -386,7 +398,7 @@ func (d *DialogManager) readUser() (err error) {
 	return nil
 }
 
-func (d *DialogManager) readPassword() (err error) {
+func (d *Manager) readPassword() (err error) {
 
 	var code int
 	var pass storage.Password
@@ -427,7 +439,7 @@ func (d *DialogManager) readPassword() (err error) {
 	return nil
 }
 
-func (d *DialogManager) readCard() (err error) {
+func (d *Manager) readCard() (err error) {
 
 	var code int
 	var pass storage.Card
@@ -470,7 +482,7 @@ func (d *DialogManager) readCard() (err error) {
 	return nil
 }
 
-func (d *DialogManager) readBinData() (err error) {
+func (d *Manager) readBinData() (err error) {
 
 	var code int
 	var pass storage.BinaryData
@@ -513,7 +525,8 @@ func (d *DialogManager) readBinData() (err error) {
 	return nil
 }
 
-func (d *DialogManager) Update(dataType string) error {
+// Update is a facade for updating data from server
+func (d *Manager) Update(dataType string) error {
 	switch dataType {
 	case "password":
 		return d.updatePassword()
@@ -527,7 +540,7 @@ func (d *DialogManager) Update(dataType string) error {
 	}
 }
 
-func (d *DialogManager) updatePassword() (err error) {
+func (d *Manager) updatePassword() (err error) {
 
 	var code int
 	var pass storage.Password
@@ -582,7 +595,7 @@ func (d *DialogManager) updatePassword() (err error) {
 	return nil
 }
 
-func (d *DialogManager) updateCard() (err error) {
+func (d *Manager) updateCard() (err error) {
 
 	var code int
 	var pass storage.Card
@@ -654,7 +667,7 @@ func (d *DialogManager) updateCard() (err error) {
 	return nil
 }
 
-func (d *DialogManager) updateBinData() (err error) {
+func (d *Manager) updateBinData() (err error) {
 
 	var code int
 	var pass storage.BinaryData
@@ -716,7 +729,8 @@ func (d *DialogManager) updateBinData() (err error) {
 	return nil
 }
 
-func (d *DialogManager) Delete(dataType string) error {
+// Delete is a facade for deleting data from server
+func (d *Manager) Delete(dataType string) error {
 	switch dataType {
 	case "password":
 		return d.deletePassword()
@@ -732,7 +746,7 @@ func (d *DialogManager) Delete(dataType string) error {
 	}
 }
 
-func (d *DialogManager) deletePassword() (err error) {
+func (d *Manager) deletePassword() (err error) {
 
 	var pass storage.Password
 	var code int
@@ -767,7 +781,7 @@ func (d *DialogManager) deletePassword() (err error) {
 	return nil
 }
 
-func (d *DialogManager) deleteCard() (err error) {
+func (d *Manager) deleteCard() (err error) {
 
 	var pass storage.Card
 	var code int
@@ -802,7 +816,7 @@ func (d *DialogManager) deleteCard() (err error) {
 	return nil
 }
 
-func (d *DialogManager) deleteBinData() (err error) {
+func (d *Manager) deleteBinData() (err error) {
 
 	var pass storage.BinaryData
 	var code int
@@ -836,7 +850,7 @@ func (d *DialogManager) deleteBinData() (err error) {
 	return nil
 }
 
-func (d *DialogManager) deleteUser() (err error) {
+func (d *Manager) deleteUser() (err error) {
 
 	var pass storage.User
 	var code int

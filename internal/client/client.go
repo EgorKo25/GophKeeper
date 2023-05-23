@@ -1,3 +1,4 @@
+// Package client is a package for sending any type data to server
 package client
 
 import (
