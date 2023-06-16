@@ -41,9 +41,7 @@ func main() {
 
 	c := client.NewClient(cfg.AddrServ)
 
-	dial := dialog.NewDialogManager(c, enc)
-
-	dial.SayHello()
+	dial := dialog.NewManager(c, enc)
 
 	log.Println(dial.Run())
 
